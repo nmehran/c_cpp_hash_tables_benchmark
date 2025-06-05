@@ -1019,6 +1019,7 @@ template< typename blueprint > const blueprint::key_type &shuffled_unique_key( s
 enum benchmark_ids
 {
   insert_nonexisting,
+  reinsert_after_erasure,
   erase_existing,
   insert_existing,
   erase_nonexisting,
@@ -1030,6 +1031,7 @@ enum benchmark_ids
 // Benchmark names used in the graphs.
 const char *benchmark_names[] = {
   "Total time to insert N nonexisting keys",
+  "Total time to reinsert N keys after N-1 erasures",
   "Time to erase 1,000 existing keys with N keys in the table",
   "Time to replace 1,000 existing keys with N keys in the table",
   "Time to erase 1,000 nonexisting keys with N keys in the table",
@@ -1041,6 +1043,7 @@ const char *benchmark_names[] = {
 // Benchmark names used in the heatmap.
 const char *benchmark_alt_names[] = {
   "Insert nonexisting",
+  "Reinsert after erasure",
   "Erase existing",
   "Replace existing",
   "Erase nonexisting",
@@ -1079,6 +1082,7 @@ template< template< typename > typename shim, typename blueprint >void benchmark
   // initialized at program start-up.
   do_not_optimize += *(unsigned char *)&shuffled_unique_key< blueprint >( 0 );
   do_not_optimize += *(unsigned char *)&results< shim, blueprint, insert_nonexisting >( 0, 0 );
+  do_not_optimize += *(unsigned char *)&results< shim, blueprint, reinsert_after_erasure >( 0, 0 );
   do_not_optimize += *(unsigned char *)&results< shim, blueprint, erase_existing >( 0, 0 );
   do_not_optimize += *(unsigned char *)&results< shim, blueprint, insert_existing >( 0, 0 );
   do_not_optimize += *(unsigned char *)&results< shim, blueprint, erase_nonexisting >( 0, 0 );
@@ -1119,6 +1123,46 @@ template< template< typename > typename shim, typename blueprint >void benchmark
     shim< blueprint >::destroy_table( table );
   }
   #endif
+
+  #ifdef BENCHMARK_REINSERT_AFTER_ERASURE
+  {
+      auto table = shim<blueprint>::create_table();
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(MILLISECOND_COOLDOWN_BETWEEN_BENCHMARKS));
+
+      for (size_t k = 0; k < KEY_COUNT; ++k) {
+          shim<blueprint>::insert(table, shuffled_unique_key<blueprint>(k));
+      }
+
+      // Erasure Phase (not timed for this benchmark's primary result)
+      // Erase the first KEY_COUNT - 1 keys that were inserted.
+      // This leaves the last key (shuffled_unique_key<blueprint>(KEY_COUNT - 1)) in the table.
+      for (size_t k = 0; k < KEY_COUNT - 1; ++k) {
+          shim<blueprint>::erase(table, shuffled_unique_key<blueprint>(k));
+      }
+      // At this point, the table should effectively contain 1 element.
+
+      // Re-insertion Phase (Measured)
+      size_t i = 0; // Key counter for re-insertion
+      size_t j = 0; // Counter for measurement interval
+      const auto start = std::chrono::high_resolution_clock::now();
+      while (i < KEY_COUNT) {
+          // Re-insert all original KEY_COUNT keys using the same sequence.
+          // This will re-insert the KEY_COUNT-1 erased keys,
+          // and attempt to re-insert the 1 key that remained (testing update/replace behavior).
+          shim<blueprint>::insert(table, shuffled_unique_key<blueprint>(i));
+
+          ++i;
+          if (++j == KEY_COUNT_MEASUREMENT_INTERVAL) {
+              results<shim, blueprint, reinsert_after_erasure>(run, (i / KEY_COUNT_MEASUREMENT_INTERVAL) - 1) =
+                  std::chrono::duration_cast<std::chrono::microseconds>(
+                      std::chrono::high_resolution_clock::now() - start).count();
+              j = 0;
+          }
+      }
+      shim<blueprint>::destroy_table(table);
+  }
+  #endif // BENCHMARK_REINSERT_AFTER_ERASURE
 
   #ifdef BENCHMARK_ERASE_EXISTING
   {
@@ -2044,7 +2088,7 @@ double total_adjusted_average_result()
   // Since the INSERT_NOEXISTING benchmark is already cumulative, there's no need to total the results for each
   // measurement taken in the benchmark.
   // Instead, we just use the final measurement.
-  if( benchmark_id == insert_nonexisting )
+  if( benchmark_id == insert_nonexisting || benchmark_id == reinsert_after_erasure )
     return adjusted_average_result< shim, blueprint, benchmark_id >( KEY_COUNT / KEY_COUNT_MEASUREMENT_INTERVAL - 1 );
 
   // Otherwise, sum all displayed data points.
@@ -2120,7 +2164,7 @@ void heatmap_cell_out( std::ofstream &file, unsigned int row, unsigned int col, 
 
   file << "  <text x='" << x + cell_width * 0.5 << "' y='" << y + 16 + 1 << "' text-anchor='middle' "
        <<     "style='fill: " << ( normalized_total >= 5.0 ? "white" : "black" ) << " !important;'>" << normalized_total
-       <<     ( benchmark_id == erase_existing && shim< void >::tombstone_like_mechanism ? "&#10013;" : "" )
+       <<     ( (benchmark_id == erase_existing || benchmark_id == reinsert_after_erasure) && shim< void >::tombstone_like_mechanism ? "&#10013;" : "" )
        <<     "</text>\n"
   ;
 }
@@ -2353,6 +2397,9 @@ void heatmap_out( std::ofstream &file )
   #ifdef BENCHMARK_INSERT_NONEXISTING
   ++benchmarks;
   #endif
+  #ifdef BENCHMARK_REINSERT_AFTER_ERASURE
+  ++benchmarks;
+  #endif
   #ifdef BENCHMARK_ERASE_EXISTING
   ++benchmarks;
   #endif
@@ -2499,6 +2546,9 @@ void heatmap_out( std::ofstream &file )
   #ifdef BENCHMARK_INSERT_NONEXISTING
   heatmap_rows_out< insert_nonexisting >( file, row, cell_width );
   #endif
+  #ifdef BENCHMARK_REINSERT_AFTER_ERASURE
+  heatmap_rows_out< reinsert_after_erasure >( file, row, cell_width );
+  #endif
   #ifdef BENCHMARK_ERASE_EXISTING
   heatmap_rows_out< erase_existing >( file, row, cell_width );
   #endif
@@ -2555,6 +2605,9 @@ void html_out( std::string &file_id )
 
   #ifdef BENCHMARK_INSERT_NONEXISTING
   graphs_out< insert_nonexisting >( file );
+  #endif
+  #ifdef BENCHMARK_REINSERT_AFTER_ERASURE
+  graphs_out< reinsert_after_erasure >( file );
   #endif
   #ifdef BENCHMARK_ERASE_EXISTING
   graphs_out< erase_existing >( file );
@@ -2722,6 +2775,9 @@ void csv_out( std::string &file_id )
 
   #ifdef BENCHMARK_INSERT_NONEXISTING
   csv_benchmark_out< insert_nonexisting >( file );
+  #endif
+  #ifdef BENCHMARK_REINSERT_AFTER_ERASURE
+  csv_benchmark_out< reinsert_after_erasure >( file );
   #endif
   #ifdef BENCHMARK_ERASE_EXISTING
   csv_benchmark_out< erase_existing >( file );

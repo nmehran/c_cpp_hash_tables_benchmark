@@ -35,6 +35,7 @@
 
 // The specific benchmarks to run (comment them out to disable them).
 #define BENCHMARK_INSERT_NONEXISTING
+#define BENCHMARK_REINSERT_AFTER_ERASURE
 #define BENCHMARK_ERASE_EXISTING
 #define BENCHMARK_INSERT_EXISTING
 #define BENCHMARK_ERASE_NONEXISTING

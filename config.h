@@ -78,3 +78,6 @@
 #define SHIM_14 uthash
 #define SHIM_15 verstable
 // #define SHIM_15
+
+// Added shims.
+// indivi_flat_umap // indivi_flat_umap does not automatically respect MAX_LOAD_FACTOR (the header must be modified).

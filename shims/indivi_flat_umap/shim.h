@@ -56,7 +56,8 @@ struct indivi_flat_umap {
 public:
     /// @brief Adapts the blueprint's hash function.
     struct hash {
-        /// Signals to the benchmark that `blueprint::hash_key` is high-quality (unused by indivi_flat_umap).
+        /// Signals to the benchmark that `blueprint::hash_key` is high-quality.
+        /// indivi::flat_umap uses this to skip an internal mixing step.
         using is_avalanching = void;
 
         /// Forwards to the blueprint's hash function; noexcept if blueprint's function is noexcept.
@@ -95,6 +96,8 @@ public:
 
     static void insert(table_type &table, const typename blueprint::key_type &key) {
         // Use operator[] to ensure "insert or update" semantics, as required by the benchmark.
+        // indivi::flat_umap's operator[] finds or creates the element, and the assignment
+        // updates the value to a default-constructed one.
         table[key] = typename blueprint::value_type{};
     }
 
@@ -107,12 +110,15 @@ public:
     }
 
     static bool is_itr_valid(table_type &table, iterator_type &itr) {
-        // For indivi::flat_umap, table.end() returns a unique end iterator instance, so direct comparison is correct.
+        // For indivi::flat_umap, table.end() returns a sentinel iterator (which is null/default-constructed).
+        // The iterator becomes equal to this sentinel value after the last element has been visited.
         return itr != table.end();
     }
 
     static void increment_itr(table_type & /*table*/, iterator_type &itr) {
         // The `table` parameter is unused but retained for API compatibility.
+        // Although the iterator's internal implementation traverses memory backwards,
+        // the public operator++() correctly advances it to the next logical element.
         ++itr;
     }
 
@@ -143,5 +149,6 @@ struct indivi_flat_umap<void> {
     /// The color used for this table in generated plots (RGB).
     static constexpr const char *color = "rgb(128, 0, 128)"; // Purple
     /// Indicates whether the table uses a tombstone-like mechanism for deletions.
+    /// indivi::flat_umap uses overflow counters instead of tombstones.
     static constexpr bool tombstone_like_mechanism = false;
 };

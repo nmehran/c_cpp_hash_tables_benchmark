@@ -80,5 +80,6 @@
 // #define SHIM_15
 
 // Additional shims.
+// cwisstable  // cwisstable does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
 // excalibur
 // indivi_flat_umap // indivi_flat_umap does not automatically respect MAX_LOAD_FACTOR (the header must be modified).

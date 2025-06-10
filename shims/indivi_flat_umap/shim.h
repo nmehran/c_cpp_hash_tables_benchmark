@@ -9,7 +9,7 @@
  * @note This shim integrates with the C/C++ hash table benchmark suite by Jackson L. Allan
  *       and its usage in that context is subject to that project's copyright and license.
  * @note The underlying `indivi::flat_umap` library was created by Guillaume Aujay
- *       and is subject to its own copyright and license.
+ *       (https://github.com/gaujay/indivi_collection/) and is subject to its own copyright and license.
  *
  * @license MIT (see LICENSE file for details)
  */
@@ -95,10 +95,9 @@ public:
     }
 
     static void insert(table_type &table, const typename blueprint::key_type &key) {
-        // Use operator[] to ensure "insert or update" semantics, as required by the benchmark.
-        // indivi::flat_umap's operator[] finds or creates the element, and the assignment
-        // updates the value to a default-constructed one.
-        table[key] = typename blueprint::value_type{};
+        // Using insert_or_assign to directly implement "insert or update" semantics.
+        // This avoids the default-construct and assign of operator[] for new elements.
+        table.insert_or_assign(key, typename blueprint::value_type{});
     }
 
     static void erase(table_type &table, const typename blueprint::key_type &key) {

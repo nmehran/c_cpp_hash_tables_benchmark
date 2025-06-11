@@ -87,3 +87,4 @@
 // pgm_dynamic       // *learned index - uses native key arithmetic; ignores benchmark hash, cmpr, and load factor.
 // tommyds_dyn       // tommyds_dyn does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
 // tommyds_hash      // tommyds_hash is fixed-size and initialized via KEY_COUNT; MAX_LOAD_FACTOR is not applied.
+// tommyds_lin       // tommyds_lin uses an internal load factor policy for resizing; MAX_LOAD_FACTOR is not applied.

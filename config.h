@@ -80,7 +80,8 @@
 // #define SHIM_15
 
 // Additional shims.
-// cwisstable  // cwisstable does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
+// cwisstable        // cwisstable does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
 // excalibur
-// fph_dynamic_map  // Perfect hash table - bypasses global MAX_LOAD_FACTOR (uses default) to prevent insertion stalls.
+// fph_dynamic_map   // *perfect hash table - MAX_LOAD_FACTOR not applied; benchmark insertion strategy not intended use.
 // indivi_flat_umap  // indivi_flat_umap does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
+// pgm_dynamic       // *learned index - uses native key arithmetic; ignores benchmark hash, cmpr, and load factor.

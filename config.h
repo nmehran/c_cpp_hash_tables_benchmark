@@ -85,3 +85,4 @@
 // fph_dynamic_map   // *perfect hash table - MAX_LOAD_FACTOR not applied; benchmark insertion strategy not intended use.
 // indivi_flat_umap  // indivi_flat_umap does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
 // pgm_dynamic       // *learned index - uses native key arithmetic; ignores benchmark hash, cmpr, and load factor.
+// tommyds_dyn       // tommyds_dyn does not automatically respect MAX_LOAD_FACTOR (the header must be modified).

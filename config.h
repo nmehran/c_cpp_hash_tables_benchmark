@@ -82,4 +82,5 @@
 // Additional shims.
 // cwisstable  // cwisstable does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
 // excalibur
-// indivi_flat_umap // indivi_flat_umap does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
+// fph_dynamic_map  // Perfect hash table - bypasses global MAX_LOAD_FACTOR (uses default) to prevent insertion stalls.
+// indivi_flat_umap  // indivi_flat_umap does not automatically respect MAX_LOAD_FACTOR (the header must be modified).

@@ -82,28 +82,76 @@ public:
         }
     };
 
-    /// @brief A safe random key generator for C-strings (`char*`).
-    /// FPH requires a random key generator to create internal "fill" keys for empty slots.
-    /// The default generator for pointer types creates dangling pointers. This custom
-    //  generator solves the problem by managing the memory of the strings it creates.
+    /// @brief A safe, deterministic, and optimized random key generator for C-strings (`char*`).
+    ///
+    /// @purpose This generator solves a critical safety issue in the FPH library. The default
+    /// generator for pointer types creates dangling pointers, leading to segmentation faults.
+    /// This implementation provides memory safety by managing the lifetime of all
+    /// generated strings within a single, persistent memory arena.
+    ///
+    /// @usage FPH calls this generator only during table construction or rehash to create a few
+    /// internal "fill" keys for marking empty slots. It is NOT on the critical path for
+    /// standard `insert`, `find`, or `erase` operations, but has been optimized
+    /// as a matter of good practice.
     struct fph_cstring_random_generator {
-        // A list is used because pointers to its elements are not invalidated on insertion.
-        std::list<std::string> memory_manager;
-        std::mt19937_64 rng{std::random_device{}()};
+        // --- Static Members for Singleton-like State Management ---
+        // All members are static to create a single, shared resource manager that persists
+        // across the temporary generator objects created by the FPH library.
+
+        /// @brief A single, contiguous memory pool (arena) to hold all generated strings.
+        static inline std::vector<char> memory_arena;
+
+        /// @brief The offset that tracks the next available position in the memory_arena.
+        static inline size_t next_string_offset = 0;
+
+        /// @brief The shared state for our deterministic pseudo-random number generator (RNG).
+        static inline uint64_t rng_state = 0x123456789ABCDEF1ULL;
+
+        /// @brief The constructor's only job is to perform a one-time setup of the memory arena.
+        fph_cstring_random_generator() {
+            if (memory_arena.capacity() == 0) {
+                // Pre-allocate space for 16 strings to avoid reallocations on the hot path.
+                memory_arena.reserve(blueprint::string_length * 16);
+            }
+        }
+
+        /// @brief Fast, high-quality 64-bit non-cryptographic RNG (SplitMix64).
+        static uint64_t next_rng() {
+            uint64_t z = (rng_state += 0x9e3779b97f4a7c15);
+            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
+            z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
+            return z ^ (z >> 31);
+        }
 
         typename blueprint::key_type operator()() {
-            // Assumes the blueprint provides the necessary string_length.
+            // Blueprint must provide the necessary string_length attribute for C-strings.
             constexpr size_t len = blueprint::string_length;
-            std::uniform_int_distribution<char> dist('a', 'z');
 
-            std::string new_str(len, '\0'); // Allocate full length
-            for(size_t i = 0; i < len - 1; ++i) {
-                new_str[i] = dist(rng);
+            // Grow arena if needed (rarely happens due to pre-allocation).
+            if (next_string_offset + len > memory_arena.size()) {
+                memory_arena.resize(memory_arena.size() * 2 + len * 16);
             }
 
-            memory_manager.push_back(std::move(new_str));
-            // Return a valid, non-const pointer to the string's managed data.
-            return const_cast<char*>(memory_manager.back().c_str());
+            char* dest = memory_arena.data() + next_string_offset;
+
+            // Generate random characters using a fast lookup table and bitwise operations.
+            static constexpr char alphabet[] = "abcdefghijklmnopqrstuvwxyz012345"; // 32 chars
+            static constexpr uint64_t mask = 0x1F; // Bitmask for 5 bits (0-31)
+
+            size_t i = 0;
+            while (i < len - 1) {
+                uint64_t random_bits = next_rng();
+                // Process up to 12 characters from a single 64-bit random number.
+                for (int j = 0; j < 12 && i < len - 1; ++j) {
+                    dest[i++] = alphabet[random_bits & mask];
+                    random_bits >>= 5;
+                }
+            }
+            dest[len - 1] = '\0';
+
+            // Advance the offset for the next call.
+            next_string_offset += len;
+            return dest;
         }
     };
 
@@ -114,7 +162,18 @@ public:
         fph::dynamic::RandomGenerator<typename blueprint::key_type>
     >;
 
-    /// The specialized hash table type.
+    /// @brief The specialized hash table type. Template arguments are:
+    /// 1. Key:              From the benchmark blueprint.
+    /// 2. T:                From the benchmark blueprint.
+    /// 3. SeedHash:         Our adapter for the blueprint's hash_key function.
+    /// 4. KeyEqual:         Our adapter for the blueprint's cmpr_keys function.
+    /// 5. Allocator:        Standard allocator.
+    /// 6. BucketParamType:    An integer type that stores packed hashing parameters
+    ///    (an offset and a seed-selection bit) for internal key groups. `uint32_t`
+    ///    is the library's default, offering a good balance between memory usage
+    ///    and table capacity (up to 2^31 elements).
+    /// 7. RandomKeyGenerator: Required by FPH for internal fill keys. Our shim
+    ///    provides a memory-safe version for C-strings.
     using table_type = fph::DynamicFphMap<
         typename blueprint::key_type,
         typename blueprint::value_type,

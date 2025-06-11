@@ -82,6 +82,10 @@
 // Additional shims.
 // cwisstable        // cwisstable does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
 // excalibur
+// folly_f14_fast
+// folly_f14_node
+// folly_f14_value   // folly_f14_value effective max_load_factor is capped at 0.8.
+// folly_f14_vector  // folly_f14_vector effective max_load_factor is capped at 0.8.
 // fph_dynamic_map   // *perfect hash table - MAX_LOAD_FACTOR not applied; benchmark insertion strategy not intended use.
 // indivi_flat_umap  // indivi_flat_umap does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
 // pgm_dynamic       // *learned index - uses native key arithmetic; ignores benchmark hash, cmpr, and load factor.

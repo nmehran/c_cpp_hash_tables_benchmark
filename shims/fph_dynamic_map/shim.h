@@ -27,7 +27,7 @@
 // Emit a compile-time advisory about this table's load factor and intended use.
 #if !defined(FPH_DYNAMIC_MAP_ADVISORY_EMITTED)
     #define FPH_DYNAMIC_MAP_ADVISORY_EMITTED
-    #define FPH_DYNAMIC_MAP_ADVISORY_MSG "fph_dynamic_map Shim Advisory: This table is not designed for one-by-one insertions at high density. To prevent stalls and ensure fair benchmarking of its intended use case (fast lookups), the benchmark's global MAX_LOAD_FACTOR is ignored and the library's internal default (~0.6f) is used."
+    #define FPH_DYNAMIC_MAP_ADVISORY_MSG "fph_dynamic_map Shim: This perfect hash table is designed for bulk construction from a key range. To prevent stalls from the benchmark's insertion strategy, global MAX_LOAD_FACTOR is ignored in favor of the library's default (~0.6f)."
     #if defined(_MSC_VER)
         #pragma message(FPH_DYNAMIC_MAP_ADVISORY_MSG)
     #elif defined(__GNUC__) || defined(__clang__)
@@ -37,11 +37,8 @@
 
 #include "dynamic_fph_table.h" // Main include for FPH
 #include <utility>             // For std::pair
-#include <string>              // For std::string
 #include <cstddef>             // For std::size_t
 #include <type_traits>         // For static_assert, is_nothrow_invocable_v
-#include <list>                // For the custom C-string generator
-#include <random>              // For the custom C-string generator
 
 /**
  * @brief Adapter that conforms `fph::DynamicFphMap` to the benchmark API.
@@ -82,17 +79,19 @@ public:
         }
     };
 
-    /// @brief A safe, deterministic, and optimized random key generator for C-strings (`char*`).
-    ///
-    /// @purpose This generator solves a critical safety issue in the FPH library. The default
-    /// generator for pointer types creates dangling pointers, leading to segmentation faults.
-    /// This implementation provides memory safety by managing the lifetime of all
-    /// generated strings within a single, persistent memory arena.
-    ///
-    /// @usage FPH calls this generator only during table construction or rehash to create a few
-    /// internal "fill" keys for marking empty slots. It is NOT on the critical path for
-    /// standard `insert`, `find`, or `erase` operations, but has been optimized
-    /// as a matter of good practice.
+    /**
+     * @brief A safe, deterministic, and optimized random key generator for C-strings (`char*`).
+     *
+     * @purpose This generator solves a critical safety issue in the FPH library, where the
+     * default generator for pointer types creates dangling pointers, leading to
+     * segmentation faults. This implementation provides memory safety by managing the
+     * lifetime of all generated strings within a single, persistent memory arena.
+     *
+     * @usage FPH calls this generator only during table construction or rehash to create a
+     * few internal "fill" keys for marking empty slots. It is NOT on the critical
+     * path for standard `insert`, `find`, or `erase` operations, but has been
+     * optimized as a matter of good practice.
+     */
     struct fph_cstring_random_generator {
         // --- Static Members for Singleton-like State Management ---
         // All members are static to create a single, shared resource manager that persists
@@ -162,18 +161,31 @@ public:
         fph::dynamic::RandomGenerator<typename blueprint::key_type>
     >;
 
-    /// @brief The specialized hash table type. Template arguments are:
-    /// 1. Key:              From the benchmark blueprint.
-    /// 2. T:                From the benchmark blueprint.
-    /// 3. SeedHash:         Our adapter for the blueprint's hash_key function.
-    /// 4. KeyEqual:         Our adapter for the blueprint's cmpr_keys function.
-    /// 5. Allocator:        Standard allocator.
-    /// 6. BucketParamType:    An integer type that stores packed hashing parameters
-    ///    (an offset and a seed-selection bit) for internal key groups. `uint32_t`
-    ///    is the library's default, offering a good balance between memory usage
-    ///    and table capacity (up to 2^31 elements).
-    /// 7. RandomKeyGenerator: Required by FPH for internal fill keys. Our shim
-    ///    provides a memory-safe version for C-strings.
+    /**
+     * @brief The specialized hash table type, configured for the benchmark.
+     *
+     * This alias assembles the `fph::DynamicFphMap` by providing it with all the
+     * necessary adapters and parameters defined within this shim.
+     *
+     * The template arguments are as follows:
+     *
+     *   1. Key:              From the benchmark blueprint.
+     *   2. T:                From the benchmark blueprint.
+     *   3. SeedHash:         Our adapter for the blueprint's `hash_key` function.
+     *   4. KeyEqual:         Our adapter for the blueprint's `cmpr_keys` function.
+     *   5. Allocator:        The standard C++ allocator.
+     *   6. BucketParamType:  An integer type that stores packed hashing parameters.
+     *                        The library's default, `uint32_t`, packs two values:
+     *                        - The lowest bit (bit 0) is a flag used to select
+     *                          one of two secondary hash seeds to resolve
+     *                          collisions during construction.
+     *                        - The upper 31 bits store a group-specific offset.
+     *                        This design limits the maximum table capacity to 2^31
+     *                        elements but provides a good balance of memory usage
+     *                        and build-time flexibility.
+     *   7. RandomKeyGenerator: The generator for internal fill keys, with a
+     *                        memory-safe version provided for C-strings.
+     */
     using table_type = fph::DynamicFphMap<
         typename blueprint::key_type,
         typename blueprint::value_type,

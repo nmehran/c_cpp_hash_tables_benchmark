@@ -38,8 +38,8 @@
     #endif
 #endif // FOLLY_F14_VECTOR_LOAD_FACTOR_ADVISORY_EMITTED
 
-  #include <folly/container/F14Map.h>
-  #include <type_traits> // Required for std::is_nothrow_invocable_v, std::true_type
+#include <folly/container/F14Map.h>
+#include <type_traits> // Required for std::is_nothrow_invocable_v, std::true_type
 
 /**
  * @brief Adapter that conforms `folly::F14VectorMap` to the benchmark API.

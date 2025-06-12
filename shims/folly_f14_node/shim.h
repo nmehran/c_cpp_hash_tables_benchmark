@@ -25,8 +25,9 @@
  *       benchmark executable (use of `-static` linker flag may not work).
  */
 #if defined(HASH_BENCH_ENABLE_FOLLY) && HASH_BENCH_ENABLE_FOLLY == 1
-  #include <folly/container/F14Map.h>
-  #include <type_traits> // Required for std::is_nothrow_invocable_v, std::true_type
+
+#include <folly/container/F14Map.h>
+#include <type_traits> // Required for std::is_nothrow_invocable_v, std::true_type
 
 /**
  * @brief Adapter that conforms `folly::F14NodeMap` to the benchmark API.

@@ -1,12 +1,10 @@
 /**
- * @file definitions/shims/folly_f14_value/shim.h
+ * @file shims/folly_f14_value/shim.h
  * @brief This shim adapts `folly::F14ValueMap` to the benchmark suite's
  * standardized API, enabling its inclusion in performance comparisons.
  *
- * Copyright (c) 2025-Present Gradient Dynamics LLC
- * Copyright (c) 2025-Present Nima Mehrani
- *
- * Distributed under the MIT License (see LICENSE file for details).
+ * @copyright Copyright (c) 2025-Present Gradient Dynamics LLC
+ * @copyright Copyright (c) 2025-Present Nima Mehrani
  *
  * @note This shim integrates with the C/C++ hash table benchmark suite by Jackson L. Allan
  *       and its usage in that context is subject to that project's copyright and license.
@@ -172,4 +170,4 @@ template<> struct folly_f14_value< void >
   static constexpr bool tombstone_like_mechanism = true;
 };
 
-#endif
+#endif // defined(HASH_BENCH_ENABLE_FOLLY) && HASH_BENCH_ENABLE_FOLLY == 1

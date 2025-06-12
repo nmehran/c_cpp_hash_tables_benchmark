@@ -88,6 +88,7 @@
 // folly_f14_vector  // folly_f14_vector effective MAX_LOAD_FACTOR is capped at 0.8.
 // fph_dynamic_map   // *perfect hash table - MAX_LOAD_FACTOR not applied; benchmark insertion strategy not intended use.
 // indivi_flat_umap  // indivi_flat_umap does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
+// llvm_dense_map    // llvm_dense_map uses a fixed internal load factor; MAX_LOAD_FACTOR is not applied.
 // pgm_dynamic       // *learned index - uses native key arithmetic; ignores benchmark hash, cmpr, and load factor.
 // tommyds_dyn       // tommyds_dyn does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
 // tommyds_hash      // tommyds_hash is fixed-size and initialized via KEY_COUNT; MAX_LOAD_FACTOR is not applied.

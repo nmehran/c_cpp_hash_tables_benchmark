@@ -1,5 +1,5 @@
 /**
- * @file definitions/shims/qt_hash_6/shim.h
+ * @file shims/qt6_hash/shim.h
  * @brief This shim adapts `QHash` from the Qt 6 framework to the benchmark
  * suite's standardized API, enabling its inclusion in performance comparisons.
  *
@@ -188,7 +188,7 @@ public:
         return table.begin();
     }
 
-    static bool is_itr_valid( table_type &table, const iterator_type &itr )
+    static bool is_itr_valid( table_type &table, iterator_type &itr )
     {
         // Standard C++ iterator validity check against the end sentinel.
         return itr != table.end();
@@ -202,7 +202,7 @@ public:
         ++itr;
     }
 
-    static const typename blueprint::key_type &get_key_from_itr( table_type & /*table*/, const iterator_type &itr )
+    static const typename blueprint::key_type &get_key_from_itr( table_type & /*table*/, iterator_type &itr )
     {
         // Access the key via the iterator's key() method.
         // If using the wrapper, we must unwrap it to return the blueprint's key_type.
@@ -213,7 +213,7 @@ public:
 #endif
     }
 
-    static const typename blueprint::value_type &get_value_from_itr( table_type & /*table*/, const iterator_type &itr )
+    static const typename blueprint::value_type &get_value_from_itr( table_type & /*table*/, iterator_type &itr )
     {
         static_assert(!std::is_same_v<typename blueprint::value_type, std::nullptr_t>,
                       "blueprint::value_type cannot be std::nullptr_t for value iteration. "

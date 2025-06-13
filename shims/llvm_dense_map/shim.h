@@ -196,7 +196,7 @@ public:
     //===------------------------------------------------------------------===//
 
     /// @brief Creates an empty table.
-    [[nodiscard]] static table_type create_table() noexcept(std::is_nothrow_default_constructible_v<table_type>) {
+    static table_type create_table() noexcept(std::is_nothrow_default_constructible_v<table_type>) {
         // llvm::DenseMap does not support a user-specified max load factor. It grows
         // when the load factor exceeds a fixed threshold (~0.75). The advisory
         // message at the top of this file informs the user of this.
@@ -204,7 +204,7 @@ public:
     }
 
     /// @brief Finds a key in the table.
-    [[nodiscard]] static iterator_type find(table_type &table, const typename blueprint::key_type &key) {
+    static iterator_type find(table_type &table, const typename blueprint::key_type &key) {
         return table.find(key);
     }
 
@@ -222,31 +222,31 @@ public:
     }
 
     /// @brief Returns an iterator to the beginning of the table.
-    [[nodiscard]] static iterator_type begin_itr(table_type &table) noexcept {
+    static iterator_type begin_itr(table_type &table) {
         return table.begin();
     }
 
     /// @brief Checks if an iterator is still valid (i.e., not at the end).
-    [[nodiscard]] static bool is_itr_valid(table_type &table, iterator_type &itr) noexcept {
+    static bool is_itr_valid(table_type &table, iterator_type &itr) {
         return itr != table.end();
     }
 
     /// @brief Advances the iterator to the next element.
-    static void increment_itr(table_type & /*table*/, iterator_type &itr) noexcept {
+    static void increment_itr(table_type & /*table*/, iterator_type &itr) {
         // The iterator's operator++ correctly advances to the next valid element,
         // internally skipping over any empty or tombstone buckets.
         ++itr;
     }
 
     /// @brief Retrieves the key from the element pointed to by the iterator.
-    [[nodiscard]] static const typename blueprint::key_type &get_key_from_itr(table_type & /*table*/, iterator_type &itr) noexcept {
+    static const typename blueprint::key_type &get_key_from_itr(table_type & /*table*/, iterator_type &itr) {
         // DenseMap iterators dereference to a pair-like bucket (DenseMapPair),
         // which provides getFirst() to access the key.
         return itr->getFirst();
     }
 
     /// @brief Retrieves the value from the element pointed to by the iterator.
-    [[nodiscard]] static const typename blueprint::value_type &get_value_from_itr(table_type & /*table*/, iterator_type &itr) noexcept {
+    static const typename blueprint::value_type &get_value_from_itr(table_type & /*table*/, iterator_type &itr) {
         static_assert(!std::is_same_v<typename blueprint::value_type, std::nullptr_t>,
                       "blueprint::value_type cannot be std::nullptr_t for value iteration. "
                       "Use an empty struct for set-like behavior.");
@@ -255,7 +255,7 @@ public:
     }
 
     /// @brief Destroys the table (a no-op due to RAII).
-    static void destroy_table(table_type & /*table*/) noexcept {
+    static void destroy_table(table_type & /*table*/) {
         // llvm::DenseMap utilizes RAII; its destructor handles all cleanup.
     }
 };

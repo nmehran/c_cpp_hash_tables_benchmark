@@ -93,7 +93,7 @@
 // tommyds_dyn       // tommyds_dyn does not automatically respect MAX_LOAD_FACTOR (the header must be modified).
 // tommyds_hash      // tommyds_hash is fixed-size and initialized via KEY_COUNT; MAX_LOAD_FACTOR is not applied.
 // tommyds_lin       // tommyds_lin uses an internal load factor policy for resizing; MAX_LOAD_FACTOR is not applied.
-// qt_hash_6         // qt_hash_6 uses an internal load factor of 0.5 for growth; MAX_LOAD_FACTOR is not applied.
+// qt6_hash          // qt6_hash uses an internal load factor of 0.5 for growth; MAX_LOAD_FACTOR is not applied.
 
 // Conditional linking.
 #define HASH_BENCH_ENABLE_FOLLY 0  // Set to 1 to enable Folly library support and its associated shims, 0 to disable.
